@@ -377,7 +377,7 @@ class cvPls {
      */
     revisitSave(postId, days) {
         // in debug mode we do minutes not days
-        const revisitTime = Date.now() + (parseInt(days, 10) * cvPls.DEBUG ? 60000 : 86400000);
+        const revisitTime = Date.now() + (parseInt(days, 10) * (cvPls.DEBUG ? 60000 : 86400000));
         cvPls.log("Adding new revisit reminder for post %s: %s", postId, new Date(revisitTime));
         // append the new reminder to the existing revisit list
         GM.getValue("revisits", "{}")
