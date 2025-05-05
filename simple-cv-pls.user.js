@@ -276,6 +276,16 @@ class cvPls {
                 .then(pd => pd && pd.populateForm())
                 .catch(e => cvPls.log("requestButtonClickListener: error getting post %s: %s", postId, e));
 
+            PostDetail.lastRequested(postId)
+                .then(function (lastReq) {
+                    if (lastReq === undefined) {
+                        return;
+                    }
+                    const dt = new Date(lastReq.time);
+                    document.getElementById("cv-pls-last-type").textContent = lastReq.type;
+                    document.getElementById("cv-pls-last-time").textContent = dt.toLocaleString();
+                    document.getElementById("cv-pls-last-request").classList.remove("d-none");
+                });
             if (reason.disabled) {
                 details.focus();
             } else {
@@ -333,7 +343,7 @@ class cvPls {
 
     /**
      * A revisit: auto-open the request popover and show a banner on the page
-     * 
+     *
      * @param {PostDetail} pd
      */
     revisitHandle(pd) {
@@ -480,6 +490,7 @@ class cvPls {
             time: Date.now(),
             type: "q",
             url: `https://stackoverflow.com/q/${questionId}`,
+            lastRequestType: "cv-pls",
             reason: reasonText ?? "",
             reasonCode: reasonCode,
             details: customReason,
@@ -505,6 +516,7 @@ class cvPls {
 
             const requestText = this.requestBodyCreate("cv-pls", reasonText, questionId);
             const requestRoom = activeDays > cvPls.OLD_ROOM_DAYS ? cvPls.SOCVR_OLD_ROOM : cvPls.SOCVR_ROOM;
+            postDetails.logRequest();
             this.requestSend(requestRoom, requestText);
         }
     }
@@ -548,6 +560,7 @@ class cvPls {
             time: Date.now(),
             type: isQuestion ? "q" : "a",
             url: url,
+            lastRequestType: type,
             reasonCode: reason.value,
             details: details.value,
             nato: nato.checked,
@@ -671,24 +684,20 @@ class cvPls {
                 this.revisitSave(postDetail.id, popup.querySelector("#cv-pls-revisit-days")?.value);
                 return;
             }
+            postDetail.logRequest(postDetail.lastRequestType);
         }
         // these are only filled when the stock close popup is submitted with the checkbox
         requestText ??= document.querySelector("#cv-pls-request").value;
         roomId ??= document.querySelector("#cv-pls-room").value;
-
-        let roomUrl = `https://chat.stackoverflow.com/rooms/${roomId}`;
-        let chatUrl = `https://chat.stackoverflow.com/chats/${roomId}/messages/new`;
-
         if (cvPls.DEBUG) {
-            roomUrl = `https://chat.stackoverflow.com/rooms/${cvPls.SANDBOX_ROOM}`;
-            chatUrl = `https://chat.stackoverflow.com/chats/${cvPls.SANDBOX_ROOM}/messages/new`;
+            roomId = cvPls.SANDBOX_ROOM;
         }
 
-        let submit = document.querySelector("#cv-pls-submit");
-        if (!submit) {
-            // the popup isn't loaded, creating a fake element
-            submit = document.createElement("button");
-        }
+        const roomUrl = `https://chat.stackoverflow.com/rooms/${roomId}`;
+        const chatUrl = `https://chat.stackoverflow.com/chats/${roomId}/messages/new`;
+
+        // if the popup isn't loaded, create a fake element
+        const submit = document.querySelector("#cv-pls-submit") ?? document.createElement("button");
         submit.ariaBusy = "true";
         submit.disabled = true;
         submit.classList.add("is-loading");
@@ -845,7 +854,7 @@ class cvPls {
                     </h2>
                 </div>
                 <div id="pane-main" class="cv-pls-body popup-pane popup-active-pane">
-    
+
                     <div class="d-flex gy4 my8 fd-column">
                         <label for="cv-pls-type" class="flex--item s-label">Request Type</label>
                         <div class="flex--item s-select">
@@ -854,12 +863,12 @@ class cvPls {
                             </select>
                         </div>
                     </div>
-    
+
                     <div class="d-flex gy4 my8 fd-column d-none" id="cv-pls-days-container">
                         <label for="cv-pls-days" class="flex--item s-label">Revisit Days</label>
                         <input type="number" id="cv-pls-revisit-days" class="flex--item s-input"/>
                     </div>
-    
+
                     <div class="d-flex gy4 my8 fd-column" id="cv-pls-reason-container">
                         <label for="cv-pls-reason" class="flex--item s-label">Close/Delete Reason</label>
                         <div class="flex--item s-select">
@@ -878,7 +887,7 @@ class cvPls {
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="d-none gy4 my8 fd-column" id="flag-pls-reason-container">
                         <label for="flag-pls-reason" class="flex--item s-label">Flag Reason</label>
                         <div class="flex--item s-select">
@@ -889,12 +898,12 @@ class cvPls {
                             </select>
                         </div>
                     </div>
-    
+
                     <div class="d-flex gy4 my8 fd-column">
                         <label for="cv-pls-details" class="flex--item s-label">Additional Details</label>
                         <input type="text" id="cv-pls-details" class="flex--item s-input"/>
                     </div>
-    
+
                     <div class="d-flex gy4 my8">
                         <div class="flex--item">
                             <input type="checkbox" id="cv-pls-nato" disabled="disabled" class="s-checkbox"/>
@@ -903,9 +912,13 @@ class cvPls {
                             <abbr title="New Answer to Old Question">NATO</abbr>
                         </label>
                     </div>
-    
+
                     <div id="cv-pls-preview" class="my8"></div>
-    
+
+                    <div id="cv-pls-last-request" class="my8 d-none">
+                        <span id="cv-pls-last-type"></span> request sent <span id="cv-pls-last-time"></span>
+                    </div>
+
                     <div class="popup-actions mt12">
                         <div class="d-flex gx8 ai-center">
                             <input type="hidden" id="cv-pls-request"/>
@@ -952,10 +965,12 @@ class PostDetail {
     id;
     /** @var {Number} time the time of the request */
     time;
-    /** @var {String} type the type of the request (e.g. cv-pls) */
+    /** @var {String} type the type of the post (q or a) */
     type;
     /** @var {String} url the URL of the post */
     url;
+    /** @var {String} requestType the type of the request (e.g. cv-pls) */
+    lastRequestType;
     /** @var {String} reason the text of the request reason (e.g. Needs more focus) */
     reason;
     /** @var {String|null} reasonCode the request reason code (e.g. NeedMoreFocus) */
@@ -1000,6 +1015,22 @@ class PostDetail {
     }
 
     /**
+     * Given an ID, get details of the last request sent
+     *
+     * @param {String} id
+     * @return {Promise<Object|void>}
+     */
+    static lastRequested(id) {
+        return GM.getValue("requestIndex", "{}")
+            .then(function (value) {
+                const idx = JSON.parse(value);
+                if (idx.hasOwnProperty(id)) {
+                    return idx[id];
+                }
+            });
+    }
+
+    /**
      * Fill some form values based on the object's values
      */
     populateForm() {
@@ -1039,5 +1070,26 @@ class PostDetail {
         }
 
         return GM.setValue(`post-${this.id}`, JSON.stringify(this));
+    }
+
+    /**
+     * Save type and time of the most recent request made for the post
+     *
+     * @param {String} type the request type cv-pls, del-pls, etc.
+     * @return {Object} an object with type and time properties
+     */
+    logRequest(type = "cv-pls") {
+        const now = Date.now();
+        const id = this.id;
+        GM.getValue("requestIndex", "{}")
+            .then(function (value) {
+                const idx = JSON.parse(value);
+                const data = {type: type, time: now};
+                idx[id] = data;
+
+                return GM.setValue("requestIndex", JSON.stringify(idx))
+                    .then(() => cvPls.log("PostDetail.logRequest: saved post %s: %o", id, data))
+                    .catch(e => cvPls.log("PostDetail.logRequest: error saving post %s: %s", id, e));
+            });
     }
 }
