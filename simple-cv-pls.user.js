@@ -644,7 +644,7 @@ class cvPls {
                 tag = `<span class="s-tag">${tag}</span>`;
             }
             request.value = this.requestBodyCreate(reqType, fullReason, postId, isQuestion);
-            let title = document.querySelector("a.question-hyperlink").textContent;
+            let title = document.querySelector("a.question-hyperlink").innerHTML;
             if (!isQuestion) {
                 title = `Answer to: ${title}`;
             }
