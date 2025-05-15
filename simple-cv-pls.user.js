@@ -768,7 +768,7 @@ class cvPls {
      * @param {Boolean} isQuestion
      */
     requestBodyCreate(type, reason, postId, isQuestion = true) {
-        let tag;
+        let tag = "";
         if (type !== "flag-pls") {
             tag = document.querySelector("div.post-taglist a.post-tag")?.textContent ?? "";
             if (tag.length) {
