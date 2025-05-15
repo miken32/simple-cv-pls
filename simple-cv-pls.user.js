@@ -645,6 +645,7 @@ class cvPls {
             }
             request.value = this.requestBodyCreate(reqType, fullReason, postId, isQuestion);
             let title = document.querySelector("a.question-hyperlink").innerHTML;
+            title = title.replace(/ \[(duplicate|closed)\]$/, "");
             if (!isQuestion) {
                 title = `Answer to: ${title}`;
             }
