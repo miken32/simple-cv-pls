@@ -560,7 +560,7 @@ class cvPls {
             time: Date.now(),
             type: isQuestion ? "q" : "a",
             url: url,
-            lastRequestType: type,
+            lastRequestType: type.value,
             reasonCode: reason.value,
             details: details.value,
             nato: nato.checked,
