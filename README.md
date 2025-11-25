@@ -13,3 +13,8 @@ I am not much of a power user, so the *many* extra features on the [standard req
 * Sending anything other than <kbd>cv-pls</kbd>, <kbd>del-pls</kbd>, <kbd>reopen-pls</kbd>, or <kbd>flag-pls</kbd> requests
 * Sending to rooms other than SOCVR and SOCVR old questions
 * Working on any sites other than SO
+
+## Things I'd like to fix
+* Post requests to the old questions room despite recent activity, if that activity was from me
+* Maybe do a Roomba check and add a note to <kbd>del-pls</kbd> requests like the standard script does
+* Don't allow posting repeated requests too soon, per room rules
