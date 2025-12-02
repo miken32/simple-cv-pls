@@ -566,7 +566,7 @@ class cvPls {
             time: Date.now(),
             type: isQuestion ? "q" : "a",
             url: url,
-            lastRequestType: type,
+            lastRequestType: type.value,
             reasonCode: reason.value,
             details: details.value,
             nato: nato.checked,
@@ -650,7 +650,8 @@ class cvPls {
                 tag = `<span class="s-tag">${tag}</span>`;
             }
             request.value = this.requestBodyCreate(reqType, fullReason, postId, isQuestion);
-            let title = document.querySelector("a.question-hyperlink").textContent;
+            let title = document.querySelector("a.question-hyperlink").innerHTML;
+            title = title.replace(/ \[(duplicate|closed)\]$/, "");
             if (!isQuestion) {
                 title = `Answer to: ${title}`;
             }
@@ -773,7 +774,7 @@ class cvPls {
      * @param {Boolean} isQuestion
      */
     requestBodyCreate(type, reason, postId, isQuestion = true) {
-        let tag;
+        let tag = "";
         if (type !== "flag-pls") {
             tag = document.querySelector("div.post-taglist a.post-tag")?.textContent ?? "";
             if (tag.length) {
