@@ -164,6 +164,15 @@ class cvPls {
      */
     requestButtonAdd(container) {
         const isAnswer = container.classList.contains("answer");
+
+        const target = isAnswer
+            ? container.querySelector("button.js-flag-post-link")
+            // "open-ended" questions don't have a close button
+            : document.querySelector("button.js-close-question-link") ?? container.querySelector("button.js-flag-post-link");
+        if (!target) {
+            return;
+        }
+
         const postId = isAnswer ? container.dataset.answerid : container.dataset.questionid;
         // create the request button, copying existing formatting for close, flag, etc.
         const doc = Document.parseHTMLUnsafe(`
@@ -176,9 +185,6 @@ class cvPls {
         doc.querySelector("button.cv-pls-button")
             .addEventListener("click", e => this.requestButtonClickListener(e));
 
-        const target = isAnswer
-            ? container.querySelector("button.js-flag-post-link")
-            : document.querySelector("button.js-close-question-link");
         target.closest(".s-anchors").append(...doc.body.childNodes);
 
         // see if this is being opened due to a reminder
@@ -560,7 +566,7 @@ class cvPls {
             time: Date.now(),
             type: isQuestion ? "q" : "a",
             url: url,
-            lastRequestType: type.value,
+            lastRequestType: type,
             reasonCode: reason.value,
             details: details.value,
             nato: nato.checked,
@@ -644,8 +650,7 @@ class cvPls {
                 tag = `<span class="s-tag">${tag}</span>`;
             }
             request.value = this.requestBodyCreate(reqType, fullReason, postId, isQuestion);
-            let title = document.querySelector("a.question-hyperlink").innerHTML;
-            title = title.replace(/ \[(duplicate|closed)\]$/, "");
+            let title = document.querySelector("a.question-hyperlink").textContent;
             if (!isQuestion) {
                 title = `Answer to: ${title}`;
             }
@@ -768,7 +773,7 @@ class cvPls {
      * @param {Boolean} isQuestion
      */
     requestBodyCreate(type, reason, postId, isQuestion = true) {
-        let tag = "";
+        let tag;
         if (type !== "flag-pls") {
             tag = document.querySelector("div.post-taglist a.post-tag")?.textContent ?? "";
             if (tag.length) {
@@ -817,6 +822,13 @@ class cvPls {
         }
         let opts = "";
         let room = cvPls.SOCVR_ROOM;
+        // open-ended questions won't have close/reopen buttons
+        if ((postType === "q" || postType === "qd") && !document.querySelector("button.js-close-question-link")) {
+            // can only flag or revisit them, same as answers
+            postType = postType.replace(/q/, "a");
+            // and fake the score so we don't see the delete option
+            postScore = 1;
+        }
         switch (postType) {
             case "qd":
             case "ad":
